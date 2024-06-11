@@ -2,7 +2,7 @@
 
 This is the code used in
 
-'Identifying the risk clusters for African Swine Fever in Korea by developing the statistical models ' on revision by Frontiers in Public Health.
+'Identifying the risk clusters for African Swine Fever in Korea by developing the statistical models ' on revision by Frontiers in Veterinary science.
 
 Kyeongtae Ko, Yongin Choi, Janghun Oh, and Hyojung Lee
 

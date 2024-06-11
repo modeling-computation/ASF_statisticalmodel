@@ -10,23 +10,19 @@ library(terra)
 library(sf)
 library(MASS)
 library(pscl)
-setwd('/Users/gogyeongtae/Library/CloudStorage/Dropbox/2024/2024 ASF/ASF_figure_code/Analysis_code/')
+
 source('./test_functions.r')
 
 # Set path
-apple_path <- "/Users/gogyeongtae/Library/CloudStorage/Dropbox/2022/2022 ASF/1차정리_202307/Data/시군구별 데이터/통합_shp/"
-apple_path <- "D:/Dropbox/2022/2022 ASF/1차정리_202307/Data/시군구별 데이터/통합_shp/"
 gpd_file_path = '../Data/'
 surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance.shp'))
 surv_file$SIG_CD <- as.numeric(surv_file$SIG_CD)
 
 # Data
-shp <- st_read(paste0(apple_path, 'shp통합4.shp'))
-coord <- read_excel(paste0(apple_path, '시군구위도경도.xlsx'))
+shp <- st_read(paste0(gpd_file_path, 'shp통합4.shp'))
+coord <- read_excel(paste0(gpd_file_path, '시군구위도경도.xlsx'))
 used_data <- read.csv('../Data/weekly_merge.csv', header = TRUE)
 surv_data <- read.csv('../Data/add_surveilance.csv', header = TRUE)
-
-used_data
 
 # sort and add infected
 used_data <- used_data %>% arrange(SIG_CD, time)

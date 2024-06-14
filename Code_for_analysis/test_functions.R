@@ -100,7 +100,7 @@ scan_hurdle_rank <- function(est, dat, total_iter, iter) {
 }
 
 # data : 추정 기간에 대한 데이터, pred : 특정 기간에 대한 추정 폐사체 수
-risk_score <- function(data, pred, p) {
+risk_score <- function(data, pred, p, infected) {
 	new_data <- data %>%
 		mutate(pred = pred, p_value = p) %>%
 		filter(p_value < 0.05) %>%

@@ -16,7 +16,7 @@ load('../Data/surv_intensity_week.Rdata')
 
 # Set path
 gpd_file_path = '../Data/'
-surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance.shp'))
+surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance2.shp'))
 surv_file$SIG_CD <- as.numeric(surv_file$SIG_CD)
 
 # Data
@@ -125,7 +125,7 @@ risk_score(data %>% filter(time >= 20220901 & time <= 20221231),
 
 # Second period setting
 # Poisson GLM for second period
-mod_11 = glm(NUMPOINTS ~ offset(log(forest))  + distance + distance2 +  time_num + season,
+mod_11 = glm(NUMPOINTS ~ offset(log(forest)) + distance + distance2 +  time_num + season,
              data = data %>% filter(time < 20230101),
              family = poisson(link = 'log'))
 

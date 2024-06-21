@@ -12,11 +12,11 @@ library(pscl)
 
 
 source('./test_functions.r')
-load('../Data/surv_intensity_week.Rdata')
+load('../Data/surv_intensity_week2.Rdata')
 
 # Set path
 gpd_file_path = '../Data/'
-surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance.shp'))
+surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance2.shp'))
 surv_file$SIG_CD <- as.numeric(surv_file$SIG_CD)
 
 # Data
@@ -49,7 +49,7 @@ data[data$intensity == 0, 'obs_error'] <- 0
 
 # Add observation error with surveillance intensity
 set_error1 <- 0.25
-data$Y1 <- round(data$NUMPOINTS + 0.25*data$NUMPOINTS)
+data$Y1 <- round(data$NUMPOINTS + 0.25*data$NUMPOINTS*data$obs_error) # Detection rate : 80% & 67%
 data[which((data$Y1 - data$NUMPOINTS) > 10),]
 
 # For error : 0.1
@@ -152,20 +152,9 @@ true22 <- data$Y1[data$time >= 20230101 & data$time <= 20230431]
 pred33 <- round(predict(mod_33, newdata = data %>% filter(time >= 20230101 & time <= 20230431), type = 'response'))
 true33 <- data$Y1[data$time >= 20230101 & data$time <= 20230431]
 
-# Check improvement
-## comparing with only counts
-df = data.frame(cbind(pred11, true11))
-df = df %>% filter(true11 > 0)
-
-rank_df = data.frame(pred_rank = rank(-df$pred11),
-                     true_rank = rank(-df$true11))
-sum((rank_df$true_rank - rank_df$pred_rank)^2)
-
-plot(rank_df$true_rank, rank_df$pred_rank, xlim = c(0, 100), ylim = c(0, 100))
-abline(0, 1)
-
-plot(df$true11, df$pred11, xlim = c(0, 12), ylim = c(0, 12))
-abline(0, 1)
+# Error correction
+data %>% filter(time >= 20230101 & time <= 20230431) %>% filter(SIG_CD %in% c(41610, 41830, 42730, 42760, 47250, 47730)) %>%
+  dplyr::select(intensity)
 
 # Poisson rank test
 start_time <- Sys.time()

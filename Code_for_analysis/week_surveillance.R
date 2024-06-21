@@ -7,11 +7,11 @@ library(magrittr)
 library(terra)
 library(sf)
 
-setwd('D:/Dropbox/2024/2024 ASF/ASF_figure_code/Analysis_code/')
+# setwd('D:/Dropbox/2024/2024 ASF/ASF_figure_code/Analysis_code/')
 
 # 주별 감시강도 설정
 gpd_file_path = '../Data/'
-surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance.shp'))
+surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance2.shp'))
 
 total <- cbind(surv_file$SIG_CD, surv_file$X2019_2, surv_file$X2020_1, surv_file$X2020_2,
 	surv_file$X2021_1, surv_file$X2021_2, surv_file$X2022_1, surv_file$X2022_2,
@@ -39,7 +39,8 @@ for (row in 1:nrow(total)) {
 	}
 }
 
+
 # Save
-file_path <- paste0(gpd_file_path, "surv_intensity_week.Rdata")
+file_path <- paste0(gpd_file_path, "surv_intensity_week2.Rdata")
 save(surveillance_intensity, file = file_path)
 

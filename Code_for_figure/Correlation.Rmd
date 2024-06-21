@@ -1,0 +1,283 @@
+---
+title: "ASF Correlation"
+output: pdf_document
+date: "2024-06-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library}
+
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(ggcorrplot)
+library(GGally)
+library(Hmisc)
+library(tidyr)
+
+```
+
+```{r foreat, dem, slope}
+
+rm(list = ls())
+env <- read_excel("../Data/fulldata.xlsx")
+
+print(colnames(env))
+
+# 250행 까지만 추출
+env <- env[1:250,]
+
+# SIG_CD...1, SIG_ENG_NM_x, forest, dem, slope, carcasses 추출
+env <- env[,c("SIG_CD...1", "SIG_ENG_NM_x", "forest", "dem", "slope")]
+
+# SIG_CD...1 -> SIG_CD로 변경
+colnames(env)[1] <- "SIG_CD"
+colnames(env)[2] <- "SIG_KOR_NM"
+
+print(dim(env))
+
+env
+
+```
+
+```{r carcasses}
+
+carcasses <- read.csv("../Data/ASF_WildBoar_Update.csv")
+
+colnames(carcasses)[5] <- "SIG_KOR_NM"
+
+# SIG_KOR_NM 으로 시군구별 폐사체 수
+dead <- carcasses %>% group_by(SIG_KOR_NM) %>% summarise(count = n())
+
+print(sum(dead$count))
+
+dead
+
+```
+
+```{r merge}
+
+# env 데이터프레임과 dead 데이터프레임 병합
+env <- env %>%
+  left_join(dead, by = "SIG_KOR_NM")
+
+# NA 값 모두 0으로
+env[is.na(env)] <- 0
+
+print(sum(env$count)) # 12개 추가 됨 -> 강원도 고성군, 경상남도 고성군 때문에 
+
+# SIG_CD가 48820(경상남도 고성군)의 count 값을 0으로
+env[env$SIG_CD == 48820, "count"] <- 0
+
+print(sum(env$count))
+
+env
+
+```
+```{r corr function}
+
+plot_correlation_matrix <- function(data, vars, title) {
+  
+  print(dim(data))
+  
+  # 상관 행렬 및 p-value 계산
+  cor_results <- rcorr(as.matrix(data[, vars]), type = "spearman")
+  car_cor <- cor_results$r
+  p_values <- cor_results$P
+  
+  print(car_cor)
+  print(p_values)
+  
+  # p-value가 0.05 미만인 경우 * 붙인 레이블 생성
+  cor_labels <- matrix("", nrow = nrow(car_cor), ncol = ncol(car_cor))
+  for (i in 1:nrow(car_cor)) {
+    for (j in 1:ncol(car_cor)) {
+      if (i != j) {
+        if (p_values[i, j] < 0.05) {
+          cor_labels[i, j] <- "*"
+        }
+      }
+    }
+  }
+  
+  
+  # 레이블 벡터 생성
+  cor_labels <- c(
+    cor_labels[2, 1], # 첫번째
+    cor_labels[3, 1], # 두번째
+    cor_labels[4, 1], # 세번째
+    cor_labels[3, 2], # 네번째
+    cor_labels[4, 2], # 다섯번째
+    cor_labels[4, 3]  # 여섯번째
+  )
+  
+  
+  # "*" 이 아니면 ""로 변경
+  cor_labels[cor_labels != "*"] <- ""
+  
+  print(cor_labels)
+  
+  # 상관 행렬 플롯 생성
+  ggcorrplot(car_cor,
+             p.mat = p_values,
+             method = "square",
+             type = "lower",
+             colors = c("#6D9EC1", "white", "#E46726"),
+             ggtheme = theme_minimal,
+             lab = TRUE,
+             lab_col = "black",
+             lab_size = 5,
+             outline.color = "white",
+             sig.level = 0.05,
+             legend.title = "",
+             title = title
+  ) +
+    geom_text(aes(label = cor_labels), color = "black", size = 5, position = position_nudge(x = 0.2, y = -0.01)) +
+    theme(panel.grid.major = element_blank(),
+          axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 1),
+          axis.text.x.top = element_text(angle = 0, hjust = 0.5, vjust = 0))
+
+  
+}
+
+
+```
+
+
+```{r corrplot all data}
+
+plot_correlation_matrix(env, c("forest", "dem", "slope", "count"), "Correlation All District")
+
+```
+
+```{r onlycarcasses data}
+
+# env에서 count가 양수인 데이터만 추출
+env_onlycarcasses <- env[env$count > 0,]
+
+env_onlycarcasses
+
+plot_correlation_matrix(env_onlycarcasses, c("forest", "dem", "slope", "count"), "Correlation only carcasses found district")
+
+```
+```{r Gyeongi, Gangwon}
+
+# SIG_CD 앞에서 2개 숫자가 41이면 경기도, 42면 강원도
+env_gyeonggi <- env[substr(env$SIG_CD, 1, 2) == "41",]
+env_gangwon <- env[substr(env$SIG_CD, 1, 2) == "42",]
+
+# 병합
+env_gyeonggi_gangwon <- rbind(env_gyeonggi, env_gangwon)
+
+print(env_gyeonggi_gangwon)
+
+plot_correlation_matrix(env_gyeonggi_gangwon, c("forest", "dem", "slope", "count"), "Correlation Gyeonggi and Gangwon")
+
+```
+```{r data}
+
+## late2022 data
+
+# carcasses$확진 date type으로 변경
+carcasses$확진 <- as.Date(carcasses$확진)
+
+# carcasses$확진 이 2022.09 ~ 2002.12인 데이터만 추출
+late2022 <- carcasses[carcasses$확진 >= "2022-09-01" & carcasses$확진 <= "2022-12-31", ]
+
+# late2022 데이터프레임 생성
+late2022 <- late2022 %>% group_by(SIG_KOR_NM) %>% summarise(count = n())
+
+# env 데이터프레임과 late2022 데이터프레임 병합
+env_late2022 <- late2022 %>%
+  left_join(env, by = "SIG_KOR_NM")
+
+# env_late2022 count.x 열 count로
+colnames(env_late2022)[2] <- "count"
+
+env_late2022
+
+## early2023 data
+
+# carcasses$확진 이 2023.01 ~ 2003.04인 데이터만 추출
+early2023 <- carcasses[carcasses$확진 >= "2023-01-01" & carcasses$확진 <= "2023-04-30", ]
+
+# early2023 데이터프레임 생성
+early2023 <- early2023 %>% group_by(SIG_KOR_NM) %>% summarise(count = n())
+
+# env 데이터프레임과 early2023 데이터프레임 병합
+env_early2023 <- early2023 %>%
+  left_join(env, by = "SIG_KOR_NM")
+
+# env_early2023 count.x 열 count로
+colnames(env_early2023)[2] <- "count"
+
+env_early2023
+
+# late2022&early2023 데이터프레임 생성
+env_late2022_early2023 <- carcasses[carcasses$확진 >= "2022-09-01" & carcasses$확진 <= "2023-04-30", ]
+
+env_late2022_early2023 <- env_late2022_early2023 %>% group_by(SIG_KOR_NM) %>% summarise(count = n())
+
+# env 데이터프레임과 env_late2022_early2023 데이터프레임 병합
+env_late2022_early2023 <- env_late2022_early2023 %>%
+  left_join(env, by = "SIG_KOR_NM")
+
+# env_late2022_early2023 count.x 열 count로
+colnames(env_late2022_early2023)[2] <- "count"
+
+env_late2022_early2023
+
+```
+```{r period}
+
+plot_correlation_matrix(env_late2022, c("forest", "dem", "slope", "count"), "Correlation Late 2022")
+
+plot_correlation_matrix(env_early2023, c("forest", "dem", "slope", "count"), "Correlation Early 2023")
+
+plot_correlation_matrix(env_late2022_early2023, c("forest", "dem", "slope", "count"), "Correlation Late 2022 & Early 2023")
+
+
+```
+
+```{r risk cluster}
+
+# late 2022 risk cluster : Mungyeong, Chungju, Wonju, Sangju, Bonghwa 
+env_risk_late2022 <- env_late2022[env_late2022$SIG_CD %in% c(47280, 43130, 42130, 47250, 47920),]
+
+print(env_risk_late2022)
+
+plot_correlation_matrix(env_risk_late2022, c("forest", "dem", "slope", "count"), "Correlation Risk Cluster Late 2022")
+
+# early 2023 risk cluster : Wonju, Samcheok, Chungju, Danyang, Sangju
+env_risk_early2023 <- env_early2023[env_early2023$SIG_CD %in% c(42130, 42230, 43130, 43800, 47250),]
+
+print(env_risk_early2023)
+
+plot_correlation_matrix(env_risk_early2023, c("forest", "dem", "slope", "count"), "Correlation Risk Cluster Early 2023")
+
+# all risk cluster
+env_risk_all <- env_late2022_early2023[env_late2022_early2023$SIG_CD %in% c(47280, 43130, 42130, 47250, 47920, 42230, 43800),]
+
+print(env_risk_all)
+
+plot_correlation_matrix(env_risk_all, c("forest", "dem", "slope", "count"), "Correlation Risk Cluster All")
+
+
+```
+
+
+```{r MLC}
+
+# MLC : Mungyeong, Wonju, Samcheok, Chungju, Danyang, Sangju
+
+env_MLC <- env_late2022_early2023[env_late2022_early2023$SIG_CD %in% c(47280, 42130, 42230, 43130, 43800, 47250),]
+
+print(env_MLC)
+
+plot_correlation_matrix(env_MLC, c("forest", "dem", "slope", "count"), "Correlation MLC")
+
+
+```

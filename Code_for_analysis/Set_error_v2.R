@@ -12,11 +12,11 @@ library(pscl)
 
 
 source('./test_functions.r')
-load('../Data/surv_intensity_week.Rdata')
+load('../Data/surv_intensity_week2.Rdata')
 
 # Set path
 gpd_file_path = '../Data/'
-surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance.shp'))
+surv_file <- st_read(paste0(gpd_file_path, 'korea_with_surveillance2.shp'))
 surv_file$SIG_CD <- as.numeric(surv_file$SIG_CD)
 
 # Data
@@ -46,10 +46,8 @@ data$intensity <- surveillance_intensity
 data$obs_error <- (3-data$intensity)
 data[data$intensity == 0, 'obs_error'] <- 0
 
+data$Y2 <- round(data$NUMPOINTS + 0.5*data$NUMPOINTS*data$obs_error) # Detection rate : 67% & 50%
 
-
-# Add observation error with surveillance intensity
-data$Y2 <- round(data$NUMPOINTS + 1*data$NUMPOINTS)
 
 #######################
 # For error : 0.2
